@@ -205,11 +205,11 @@ select{font:inherit;padding:6px 8px;border-radius:8px;background:#16120f;color:#
 //  Геометрия стола. 1000 единиц = длина игрового поля (≈ 2,54 м).
 // ====================================================================
 const W = 1000, H = 500, R = 11.25, RAIL = 48, CW = 14;
-const C = 36, S = 27, JD = 20, JS = 22;
+const C = 33, S = 25, JD = 18, JS = 20;
 const KITCHEN = W / 4, FOOT = { x: W * 0.75, y: H / 2 };
 const POCKETS = [
-  { x: -6, y: -6, r: 22 }, { x: W / 2, y: -20, r: 21 }, { x: W + 6, y: -6, r: 22 },
-  { x: -6, y: H + 6, r: 22 }, { x: W / 2, y: H + 20, r: 21 }, { x: W + 6, y: H + 6, r: 22 }
+  { x: -5, y: -5, r: 20 }, { x: W / 2, y: -18, r: 19 }, { x: W + 5, y: -5, r: 20 },
+  { x: -5, y: H + 5, r: 20 }, { x: W / 2, y: H + 18, r: 19 }, { x: W + 5, y: H + 5, r: 20 }
 ];
 const SEGS = [];
 function seg(ax, ay, bx, by) { const dx = bx - ax, dy = by - ay; SEGS.push({ ax, ay, bx, by, dx, dy, l2: dx * dx + dy * dy }); }
@@ -503,8 +503,8 @@ function predict(balls, cx, cy, dx, dy) {
 // ====================================================================
 const BOT_LV = [
   { name: 'лёгкий', noise: 0.028, pnoise: 0.12, cand: 4, pw: [0.42], spins: [0], next: false, brk: 0.8, think: 900 },
-  { name: 'средний', noise: 0.010, pnoise: 0.06, cand: 8, pw: [0.32, 0.52], spins: [0], next: false, brk: 0.92, think: 1000 },
-  { name: 'сильный', noise: 0.0032, pnoise: 0.03, cand: 12, pw: [0.28, 0.42, 0.62], spins: [-0.45, 0, 0.45], next: true, brk: 1, think: 1100 }
+  { name: 'средний', noise: 0.0075, pnoise: 0.06, cand: 8, pw: [0.32, 0.52], spins: [0], next: false, brk: 0.92, think: 1000 },
+  { name: 'сильный', noise: 0.002, pnoise: 0.03, cand: 12, pw: [0.28, 0.42, 0.62], spins: [-0.45, 0, 0.45], next: true, brk: 1, think: 1100 }
 ];
 const AIMP = [{ x: -2, y: -2 }, { x: W / 2, y: -6 }, { x: W + 2, y: -2 }, { x: -2, y: H + 2 }, { x: W / 2, y: H + 6 }, { x: W + 2, y: H + 2 }];
 function pathClear(balls, ax, ay, bx, by, skip, rad) {
@@ -765,9 +765,10 @@ function buildTable() {
   g.fillStyle = 'rgba(255,255,255,.25)';
   for (const p of [FOOT, { x: KITCHEN, y: H / 2 }]) { g.beginPath(); g.arc(p.x, p.y, 2.2, 0, TAU); g.fill(); }
   for (const p of POCKETS) {
-    g.fillStyle = '#050505'; g.beginPath(); g.arc(p.x, p.y, p.r + 4, 0, TAU); g.fill();
-    const pg = g.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r + 4); pg.addColorStop(0, '#000'); pg.addColorStop(1, '#1d1d1d');
-    g.fillStyle = pg; g.beginPath(); g.arc(p.x, p.y, p.r + 2, 0, TAU); g.fill();
+    const hr = p.r + 1;
+    g.fillStyle = 'rgba(200,170,110,.35)'; g.beginPath(); g.arc(p.x, p.y, hr + 2.2, 0, TAU); g.fill();
+    const pg = g.createRadialGradient(p.x, p.y, 1, p.x, p.y, hr); pg.addColorStop(0, '#000'); pg.addColorStop(0.75, '#060606'); pg.addColorStop(1, '#222');
+    g.fillStyle = pg; g.beginPath(); g.arc(p.x, p.y, hr, 0, TAU); g.fill();
   }
   const polys = [
     cushionPoly(C, 0, W / 2 - S, 0, [C - JD, -JD], [W / 2 - S + 4, -JS], JD, JS),
