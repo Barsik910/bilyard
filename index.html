@@ -899,14 +899,23 @@ function hostGame() {
   }
   if (typeof Peer === 'undefined') { $('lErr').textContent = 'Библиотека соединения не загрузилась.'; return; }
   const peer = net.peer = new Peer(PREFIX + code.toLowerCase(), { config: { iceServers: ICE }, debug: 1 });
-  peer.on('open', () => { $('lStatus').textContent = 'Ждём второго игрока…'; });
+  let wasOpen = false, fails = 0;
+  const again = ms => setTimeout(() => { if (net.peer !== peer || peer.destroyed || !peer.disconnected) return; try { peer.reconnect(); } catch (e) {} }, ms);
+  peer.on('open', () => { wasOpen = true; fails = 0; $('lStatus').textContent = 'Ждём второго игрока…'; $('lErr').textContent = ''; if (G.connected) setNet('соединено'); });
   peer.on('connection', c => { if (net.conn && net.conn.open) { try { net.conn.close(); } catch (e) {} } setupConn(c); });
-  peer.on('disconnected', () => { if (!peer.destroyed) setTimeout(() => { try { peer.reconnect(); } catch (e) {} }, 1500); });
+  peer.on('disconnected', () => { if (net.peer !== peer) return; if (!G.connected) $('lStatus').textContent = 'Связь с сервером прервалась, переподключаюсь…'; again(1000); });
   peer.on('error', e => {
-    if (e.type === 'unavailable-id') { hostGame(); return; }
+    if (net.peer !== peer) return;
+    if (e.type === 'unavailable-id') { if (!wasOpen) { hostGame(); return; } fails++; again(3000); return; }   // старый адрес ещё не освободился — ждём, код не меняем
+    if (isNetErr(e)) { fails++; if (!G.connected && fails >= 4) $('lErr').textContent = netErr(e); again(Math.min(10000, 1500 * fails)); return; }
     const m = netErr(e); if (!G.connected) $('lErr').textContent = m; else setNet(m);
   });
 }
+const isNetErr = e => ['network', 'server-error', 'socket-error', 'socket-closed'].includes(e && e.type);
+document.addEventListener('visibilitychange', () => {
+  const p = net.peer;
+  if (!document.hidden && p && p.disconnected && !p.destroyed) { try { p.reconnect(); } catch (e) {} }
+});
 function joinGame(code) {
   code = (code || '').trim().toUpperCase();
   if (code.length < 4) { $('mErr').textContent = 'Введи код из 5 символов'; return; }
@@ -924,7 +933,13 @@ function joinGame(code) {
     setupConn(peer.connect(PREFIX + code.toLowerCase(), { reliable: true, serialization: 'json' }));
     setTimeout(() => { if (!G.connected && net.peer === peer) $('jErr').textContent = 'Долго не соединяется. Проверь код или попробуй ещё раз — иногда мешает роутер или VPN.'; }, 15000);
   });
-  peer.on('error', e => { const m = netErr(e); if (!G.connected) $('jErr').textContent = m; else setNet(m); });
+  let gfails = 0;
+  peer.on('disconnected', () => { if (net.peer !== peer || G.connected) return; setTimeout(() => { if (net.peer === peer && peer.disconnected && !peer.destroyed) try { peer.reconnect(); } catch (e) {} }, 1500); });
+  peer.on('error', e => {
+    if (net.peer !== peer) return;
+    if (isNetErr(e) && !G.connected) { gfails++; if (gfails >= 4) $('jErr').textContent = netErr(e); return; }
+    const m = netErr(e); if (!G.connected) $('jErr').textContent = m; else setNet(m);
+  });
 }
 function netErr(e) {
   const t = e && e.type;
